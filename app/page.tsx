@@ -3,10 +3,22 @@
 import Link from "next/link";
 
 import EligibilityBadge from "@/components/EligibilityBadge";
+import CategoryChart from "@/components/charts/CategoryChart";
+import StatusChart from "@/components/charts/StatusChart";
 import { useApp } from "@/lib/store";
 import { evaluateEligibility } from "@/lib/rules";
+import type { EligibilityStatus } from "@/lib/types";
 
 const TODAY = new Date();
+const TODAY_DATE = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(
+  2,
+  "0",
+)}-${String(TODAY.getDate()).padStart(2, "0")}`;
+const NEXT_7_DAYS = new Date(TODAY);
+NEXT_7_DAYS.setDate(NEXT_7_DAYS.getDate() + 7);
+const NEXT_7_DAYS_DATE = `${NEXT_7_DAYS.getFullYear()}-${String(
+  NEXT_7_DAYS.getMonth() + 1,
+).padStart(2, "0")}-${String(NEXT_7_DAYS.getDate()).padStart(2, "0")}`;
 
 function formatDeadline(deadline: string | null): string {
   if (deadline === null) {
@@ -37,6 +49,20 @@ export default function HomePage() {
   ).length;
   const needsVerificationCount = evaluated.filter(
     ({ result }) => result.status === "NEEDS_VERIFICATION",
+  ).length;
+  const statusCounts: Record<EligibilityStatus, number> = {
+    ELIGIBLE: 0,
+    NOT_ELIGIBLE: 0,
+    NEEDS_VERIFICATION: 0,
+  };
+  evaluated.forEach(({ result }) => {
+    statusCounts[result.status] += 1;
+  });
+  const tasksDueSoon = state.tasks.filter(
+    (task) =>
+      task.status === "todo" &&
+      task.dueDate >= TODAY_DATE &&
+      task.dueDate <= NEXT_7_DAYS_DATE,
   ).length;
   const nextApplications = evaluated
     .filter(({ result }) => result.status !== "NOT_ELIGIBLE")
@@ -96,10 +122,42 @@ export default function HomePage() {
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">Tasks due in next 7 days</p>
-            <p className="mt-3 text-3xl font-bold text-navy">0</p>
+            <p className="mt-3 text-3xl font-bold text-navy">{tasksDueSoon}</p>
           </div>
         </section>
 
+        {profile === null && (
+          <div className="mt-6 flex flex-col gap-2 rounded-lg border border-status-needs-verification-ring bg-status-needs-verification-background px-5 py-4 text-sm text-status-needs-verification-foreground sm:flex-row sm:items-center sm:justify-between">
+            <p>Add your year and GPA to see eligibility results</p>
+            <Link
+              href="/profile"
+              className="font-semibold underline underline-offset-4"
+            >
+              Open Profile
+            </Link>
+          </div>
+        )}
+
+        <section className="mt-8 grid gap-4 lg:grid-cols-2">
+          <CategoryChart opportunities={state.opportunities} />
+          <StatusChart counts={statusCounts} />
+        </section>
+
+        {state.opportunities.length === 0 ? (
+          <section className="mt-12 rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+            <h2 className="text-xl font-bold">No opportunities yet</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Paste an announcement to add an opportunity to your workspace.
+            </p>
+            <Link
+              href="/discover"
+              className="mt-5 inline-block rounded-md bg-navy px-4 py-2.5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-navy focus:ring-offset-2"
+            >
+              Discover an opportunity
+            </Link>
+          </section>
+        ) : (
+          <>
         <section className="mt-12">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -182,6 +240,8 @@ export default function HomePage() {
             ))}
           </div>
         </section>
+          </>
+        )}
       </div>
     </main>
   );

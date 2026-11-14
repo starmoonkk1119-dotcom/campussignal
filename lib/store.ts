@@ -81,6 +81,7 @@ type AppContextValue = {
   setProfile: (profile: UserProfile) => void;
   addOpportunity: (opportunity: Opportunity) => void;
   updateOpportunity: (id: string, updates: Partial<Opportunity>) => void;
+  addTasks: (tasks: ApplicationTask[]) => void;
   toggleTask: (taskId: string) => void;
   updateTaskDate: (taskId: string, dueDate: string) => void;
   resetDemo: () => void;
@@ -140,6 +141,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [commit],
   );
 
+  const addTasks = useCallback(
+    (tasks: ApplicationTask[]) => {
+      commit({
+        ...stateRef.current,
+        tasks: [...stateRef.current.tasks, ...tasks],
+      });
+    },
+    [commit],
+  );
+
   const toggleTask = useCallback(
     (taskId: string) => {
       commit({
@@ -179,6 +190,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProfile,
       addOpportunity,
       updateOpportunity,
+      addTasks,
       toggleTask,
       updateTaskDate,
       resetDemo,
@@ -188,6 +200,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProfile,
       addOpportunity,
       updateOpportunity,
+      addTasks,
       toggleTask,
       updateTaskDate,
       resetDemo,

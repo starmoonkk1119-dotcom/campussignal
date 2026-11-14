@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 import EligibilityBadge from "@/components/EligibilityBadge";
 import EvidenceQuote from "@/components/EvidenceQuote";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
 import { evaluateEligibility } from "@/lib/rules";
 import { useApp } from "@/lib/store";
+import { generateTasks } from "@/lib/tasks";
 import type { MatchResult } from "@/lib/types";
 
 const TODAY = new Date();
@@ -197,7 +198,8 @@ function sourceFieldForRow(row: RequirementRow, evidenceField: string): string {
 
 export default function OpportunityDetailPage() {
   const params = useParams<{ id: string }>();
-  const { state } = useApp();
+  const router = useRouter();
+  const { state, addTasks } = useApp();
   const [sourceOpen, setSourceOpen] = useState(false);
   const [activeField, setActiveField] = useState<string | null>(null);
   const opportunity = state.opportunities.find(
@@ -223,6 +225,9 @@ export default function OpportunityDetailPage() {
   const currentOpportunity = opportunity;
   const profile = state.profile;
   const result = evaluateEligibility(currentOpportunity, profile, TODAY);
+  const opportunityTasks = state.tasks.filter(
+    (task) => task.opportunityId === currentOpportunity.id,
+  );
   const { eligibility } = currentOpportunity;
   const requirements: RequirementRow[] = [
     {
@@ -300,6 +305,17 @@ export default function OpportunityDetailPage() {
     } else {
       setSourceOpen(true);
     }
+  }
+
+  function handlePlanApplication() {
+    if (result.status === "NOT_ELIGIBLE") {
+      return;
+    }
+
+    if (opportunityTasks.length === 0) {
+      addTasks(generateTasks(currentOpportunity, profile, new Date()));
+    }
+    router.push("/planner");
   }
 
   const activeQuote =
@@ -502,6 +518,43 @@ export default function OpportunityDetailPage() {
               score={result.score}
               status={result.status}
             />
+          </div>
+        </section>
+
+        <section className="mt-12 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-bold">Plan my application</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Create a focused checklist from the required documents and
+                deadline.
+              </p>
+            </div>
+            {result.status === "NOT_ELIGIBLE" ? (
+              <button
+                type="button"
+                disabled
+                title="Hard requirements are not met."
+                className="cursor-not-allowed rounded-md bg-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-500"
+              >
+                Plan my application
+              </button>
+            ) : opportunityTasks.length > 0 ? (
+              <Link
+                href="/planner"
+                className="rounded-md bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-navy focus:ring-offset-2"
+              >
+                View application plan
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePlanApplication}
+                className="rounded-md bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-navy focus:ring-offset-2"
+              >
+                Plan my application
+              </button>
+            )}
           </div>
         </section>
       </div>
