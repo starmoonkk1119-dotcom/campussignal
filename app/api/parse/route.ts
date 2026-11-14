@@ -4,6 +4,11 @@ import { getDemoOpportunity } from "@/lib/fixtures";
 import { quoteAppearsIn } from "@/lib/evidence";
 import { extractOpportunity } from "@/lib/llm";
 import {
+  canonicalizeEvidenceField,
+  optionalNullFields,
+  sanitizeUncertainFields,
+} from "@/lib/normalize";
+import {
   parseOpportunitySchema,
   parseRequestSchema,
   type ParsedOpportunity,
@@ -133,8 +138,20 @@ function finalizeOpportunity(
   warnings: string[];
 } {
   const warnings: string[] = [];
-  const uncertainFields = [...parsedOpportunity.uncertainFields];
-  const evidence = parsedOpportunity.evidence.filter((entry) => {
+  const uncertainFields = sanitizeUncertainFields(
+    parsedOpportunity.uncertainFields,
+    optionalNullFields({
+      maxYear: parsedOpportunity.eligibility.maxYear,
+      organizer: parsedOpportunity.organizer,
+      summary: parsedOpportunity.summary,
+      majorRequirement: parsedOpportunity.eligibility.majorRequirement,
+    }),
+  );
+  const canonicalEvidence = parsedOpportunity.evidence.map((entry) => ({
+    ...entry,
+    field: canonicalizeEvidenceField(entry.field),
+  }));
+  const evidence = canonicalEvidence.filter((entry) => {
     if (!quoteAppearsIn(entry.quote, rawText)) {
       const note = `Evidence for ${entry.field} could not be verified against the source text.`;
       uncertainFields.push(note);
