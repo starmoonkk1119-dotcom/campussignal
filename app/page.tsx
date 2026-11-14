@@ -134,6 +134,12 @@ export default function HomePage() {
                 <p className="mt-2 text-sm text-slate-600">
                   {result.reasons[0]}
                 </p>
+                <p className="mt-3 text-sm text-slate-500">
+                  Next step:{" "}
+                  {result.status === "ELIGIBLE"
+                    ? "Review the requirements and deadline."
+                    : "Verify the missing details before applying."}
+                </p>
                 <p className="mt-5 text-sm font-semibold text-slate-500">
                   Match score: {result.score}
                 </p>
