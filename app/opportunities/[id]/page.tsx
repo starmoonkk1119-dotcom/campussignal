@@ -1,13 +1,13 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
 
 import EligibilityBadge from "@/components/EligibilityBadge";
+import { useApp } from "@/lib/store";
 import { evaluateEligibility } from "@/lib/rules";
-import { seedOpportunities, seedProfile } from "@/lib/seed";
 
-type OpportunityDetailPageProps = {
-  params: Promise<{ id: string }>;
-};
+const TODAY = new Date();
 
 function formatDeadline(deadline: string | null): string {
   if (deadline === null) {
@@ -62,20 +62,31 @@ function formatScore(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
-export default async function OpportunityDetailPage({
-  params,
-}: OpportunityDetailPageProps) {
-  const { id } = await params;
-  const today = new Date();
-  const opportunities = seedOpportunities(today);
-  const opportunity = opportunities.find((item) => item.id === id);
+export default function OpportunityDetailPage() {
+  const params = useParams<{ id: string }>();
+  const { state } = useApp();
+  const opportunity = state.opportunities.find(
+    (item) => item.id === params.id,
+  );
 
-  if (opportunity === undefined) {
-    notFound();
+  if (opportunity === undefined || state.profile === null) {
+    return (
+      <main className="min-h-screen bg-slate-50 px-5 py-16 text-navy sm:px-8">
+        <div className="mx-auto max-w-5xl">
+          <h1 className="text-3xl font-bold">Opportunity not found</h1>
+          <Link
+            href="/"
+            className="mt-5 inline-block font-semibold underline underline-offset-4"
+          >
+            Back to dashboard
+          </Link>
+        </div>
+      </main>
+    );
   }
 
-  const profile = seedProfile();
-  const result = evaluateEligibility(opportunity, profile, today);
+  const profile = state.profile;
+  const result = evaluateEligibility(opportunity, profile, TODAY);
   const displayedScore = result.status === "NOT_ELIGIBLE" ? 0 : result.score;
   const { eligibility } = opportunity;
 

@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
 
 import EligibilityBadge from "@/components/EligibilityBadge";
+import { useApp } from "@/lib/store";
 import { evaluateEligibility } from "@/lib/rules";
-import { seedOpportunities, seedProfile } from "@/lib/seed";
+
+const TODAY = new Date();
 
 function formatDeadline(deadline: string | null): string {
   if (deadline === null) {
@@ -18,13 +22,15 @@ function formatCategory(category: string): string {
 }
 
 export default function HomePage() {
-  const today = new Date();
-  const opportunities = seedOpportunities(today);
-  const profile = seedProfile();
-  const evaluated = opportunities.map((opportunity) => ({
-    opportunity,
-    result: evaluateEligibility(opportunity, profile, today),
-  }));
+  const { state } = useApp();
+  const profile = state.profile;
+  const evaluated =
+    profile === null
+      ? []
+      : state.opportunities.map((opportunity) => ({
+          opportunity,
+          result: evaluateEligibility(opportunity, profile, TODAY),
+        }));
 
   const eligibleCount = evaluated.filter(
     ({ result }) => result.status === "ELIGIBLE",
@@ -73,7 +79,7 @@ export default function HomePage() {
           <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">Total opportunities</p>
             <p className="mt-3 text-3xl font-bold text-navy">
-              {opportunities.length}
+              {state.opportunities.length}
             </p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
